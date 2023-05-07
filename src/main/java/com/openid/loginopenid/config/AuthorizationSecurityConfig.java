@@ -4,6 +4,7 @@ import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import com.openid.loginopenid.service.ClientService;
 
 import ch.qos.logback.core.Context;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,8 @@ import java.util.stream.Collectors;
 public class AuthorizationSecurityConfig {
 
     private final PasswordEncoder passwordEncoder;
+    
+    private final ClientService clientService;
 
     @Bean
     @Order(1)
@@ -63,26 +66,10 @@ public class AuthorizationSecurityConfig {
     @Bean
     @Order(2)
     public SecurityFilterChain webSecurityFilterChain(HttpSecurity http) throws Exception {
-        http.authorizeHttpRequests(auth -> auth.requestMatchers("/auth/**").permitAll().anyRequest().authenticated())
+        http.authorizeHttpRequests(auth -> auth.requestMatchers("/auth/**","/client/**").permitAll().anyRequest().authenticated())
                 .formLogin(Customizer.withDefaults());
-        http.csrf().ignoringRequestMatchers("/auth/**");
+        http.csrf().ignoringRequestMatchers("/auth/**","/client/**");
         return http.build();
-    }
-
-    @Bean
-    public RegisteredClientRepository registeredClientRepository(){
-        RegisteredClient registeredClient = RegisteredClient.withId(UUID.randomUUID().toString())
-                .clientId("client")
-                .clientSecret(passwordEncoder.encode("secret"))
-                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
-                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-                .redirectUri("https://oauthdebugger.com/debug")
-                .scope(OidcScopes.OPENID)
-                .clientSettings(clientSettings())
-                .build();
-        return new InMemoryRegisteredClientRepository(registeredClient);
     }
     
     @Bean
@@ -100,12 +87,6 @@ public class AuthorizationSecurityConfig {
     	};
     }
     
-    
-
-    @Bean
-    public ClientSettings clientSettings(){
-        return ClientSettings.builder().requireProofKey(true).build();
-    }
 
     @Bean
     public AuthorizationServerSettings authorizationServerSettings(){
