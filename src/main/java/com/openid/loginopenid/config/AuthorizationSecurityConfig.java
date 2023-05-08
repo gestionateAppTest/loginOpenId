@@ -48,7 +48,6 @@ import java.util.stream.Collectors;
 public class AuthorizationSecurityConfig {
 
     private final PasswordEncoder passwordEncoder;
-    
     private final ClientService clientService;
 
     @Bean
@@ -66,27 +65,60 @@ public class AuthorizationSecurityConfig {
     @Bean
     @Order(2)
     public SecurityFilterChain webSecurityFilterChain(HttpSecurity http) throws Exception {
-        http.authorizeHttpRequests(auth -> auth.requestMatchers("/auth/**","/client/**").permitAll().anyRequest().authenticated())
+        http.authorizeHttpRequests(auth -> auth.requestMatchers("/auth/**", "/client/**").permitAll().anyRequest().authenticated())
                 .formLogin(Customizer.withDefaults());
-        http.csrf().ignoringRequestMatchers("/auth/**","/client/**");
+        http.csrf().ignoringRequestMatchers("/auth/**", "/client/**");
         return http.build();
     }
-    
+
+
+   /* @Bean
+    public UserDetailsService userDetailsService(){
+        UserDetails userDetails = User.withUsername("user")
+                .password("{noop}user")
+                .authorities("ROLE_USER")
+                .build();
+        return new InMemoryUserDetailsManager(userDetails);
+    }*/
+/*
+    @Bean
+    public RegisteredClientRepository registeredClientRepository(){
+        RegisteredClient registeredClient = RegisteredClient.withId(UUID.randomUUID().toString())
+                .clientId("client")
+                .clientSecret(passwordEncoder.encode("secret"))
+                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+                .redirectUri("https://oauthdebugger.com/debug")
+                .scope(OidcScopes.OPENID)
+                .clientSettings(clientSettings())
+                .build();
+        return new InMemoryRegisteredClientRepository(registeredClient);
+    }*/
+
+    /* @Bean
+    public ClientSettings clientSettings(){
+        return ClientSettings.builder().requireProofKey(true).build();
+    }
+    */
+
     @Bean
     public OAuth2TokenCustomizer<JwtEncodingContext> tokenCustomizer(){
-    	return context -> {
-    		Authentication principal = context.getPrincipal();
-    		if(context.getTokenType().getValue().equals("id_token")) {
-    			context.getClaims().claim("token_type", "id_token");
-    		}
-    		if(context.getTokenType().getValue().equals("access_token")) {
-    			context.getClaims().claim("token_type", "access_token");
-    			Set<String> roles = principal.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toSet());
-    			context.getClaims().claim("roles", roles).claim("username", principal.getName());
-    		}
-    	};
+        return context -> {
+            Authentication principal = context.getPrincipal();
+            if(context.getTokenType().getValue().equals("id_token")){
+                context.getClaims().claim("token_type", "id token");
+            }
+            if(context.getTokenType().getValue().equals("access_token")){
+                context.getClaims().claim("token_type", "access token");
+                Set<String> roles = principal.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toSet());
+                context.getClaims().claim("roles", roles).claim("username", principal.getName());
+            }
+        };
     }
-    
+
+
 
     @Bean
     public AuthorizationServerSettings authorizationServerSettings(){
@@ -123,5 +155,4 @@ public class AuthorizationSecurityConfig {
         }
         return keyPair;
     }
-    
 }
